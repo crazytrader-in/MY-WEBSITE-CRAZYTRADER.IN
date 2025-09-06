@@ -1,132 +1,87 @@
-let trades = JSON.parse(localStorage.getItem("trades")) || [];
-const form = document.getElementById("journalForm");
-const journalBody = document.getElementById("journalBody");
-const totalPnL = document.getElementById("totalPnL");
-const winRate = document.getElementById("winRate");
-const totalTrades = document.getElementById("totalTrades");
-const importFile = document.getElementById("importFile");
-const exportBtn = document.getElementById("exportBtn");
+// --------- Firebase Setup ---------
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-let pnlChart;
+// --------- Sign Up Function ---------
+function signup() {
+  const username = document.getElementById('signup-username').value.trim();
+  const password = document.getElementById('signup-password').value;
+  if (!username || !password) { alert('Enter username and password'); return; }
 
-// --- Render Table ---
-function renderTrades() {
-  journalBody.innerHTML = "";
-  trades.forEach((trade, index) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td class="p-3">${trade.date}</td>
-      <td class="p-3">${trade.symbol}</td>
-      <td class="p-3">${trade.direction}</td>
-      <td class="p-3">${trade.entry}</td>
-      <td class="p-3">${trade.exit}</td>
-      <td class="p-3">${trade.qty}</td>
-      <td class="p-3 font-bold ${trade.pnl >= 0 ? "text-green-400" : "text-red-400"}">${trade.pnl}</td>
-      <td class="p-3">${trade.reason}</td>
-      <td class="p-3"><button onclick="deleteTrade(${index})" class="text-red-400 hover:underline">Delete</button></td>
-    `;
-    journalBody.appendChild(row);
-  });
-  updateStats();
-  updateChart();
-  localStorage.setItem("trades", JSON.stringify(trades));
+  const email = username + "@tradingjournal.com"; // Firebase needs email
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(userCred => {
+      const uid = userCred.user.uid;
+      db.collection('journals').doc(uid).set({ username, entries: [] });
+      alert('Signup successful! You can now login.');
+      document.getElementById('signup-username').value = '';
+      document.getElementById('signup-password').value = '';
+    })
+    .catch(err => alert(err.message));
 }
 
-// --- Update Stats ---
-function updateStats() {
-  let total = trades.reduce((acc, t) => acc + t.pnl, 0);
-  totalPnL.textContent = `₹${total.toFixed(2)}`;
-  totalTrades.textContent = trades.length;
+// --------- Login Function ---------
+function login() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const email = username + "@tradingjournal.com";
 
-  let wins = trades.filter(t => t.pnl > 0).length;
-  winRate.textContent = trades.length ? `${((wins / trades.length) * 100).toFixed(1)}%` : "0%";
+  auth.signInWithEmailAndPassword(email, password)
+    .then(userCred => {
+      const uid = userCred.user.uid;
+      localStorage.setItem('currentUID', uid);
+      document.getElementById('signup-login').style.display = 'none';
+      document.getElementById('journal-app').style.display = 'block';
+      loadJournal();
+    })
+    .catch(err => alert('Invalid credentials'));
 }
 
-// --- Chart ---
-function updateChart() {
-  let labels = trades.map(t => t.date);
-  let pnlData = trades.map(t => t.pnl);
-
-  if (pnlChart) pnlChart.destroy();
-
-  const ctx = document.getElementById("pnlChart").getContext("2d");
-  pnlChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "PnL",
-        data: pnlData,
-        borderColor: "#a855f7",
-        backgroundColor: "rgba(168,85,247,0.2)",
-        fill: true,
-        tension: 0.4,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: "#ccc" } } },
-      scales: {
-        x: { ticks: { color: "#aaa" }, grid: { color: "#333" } },
-        y: { ticks: { color: "#aaa" }, grid: { color: "#333" } }
-      }
-    }
+// --------- Logout Function ---------
+function logout() {
+  auth.signOut().then(() => {
+    localStorage.removeItem('currentUID');
+    document.getElementById('signup-login').style.display = 'block';
+    document.getElementById('journal-app').style.display = 'none';
   });
 }
 
-// --- Add Trade ---
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const trade = {
-    date: form.date.value,
-    symbol: form.symbol.value,
-    direction: form.direction.value,
-    entry: parseFloat(form.entry.value),
-    exit: parseFloat(form.exit.value),
-    qty: parseInt(form.qty.value),
-    reason: form.reason.value,
-  };
-  trade.pnl = (trade.exit - trade.entry) * trade.qty * (trade.direction === "LONG" ? 1 : -1);
+// --------- Add Journal Entry ---------
+function addEntry() {
+  const text = document.getElementById('journal-entry').value.trim();
+  if (!text) return;
+  const uid = localStorage.getItem('currentUID');
 
-  trades.push(trade);
-  renderTrades();
-  form.reset();
-});
-
-// --- Delete Trade ---
-function deleteTrade(index) {
-  trades.splice(index, 1);
-  renderTrades();
+  db.collection('journals').doc(uid).update({
+    entries: firebase.firestore.FieldValue.arrayUnion(text)
+  }).then(() => {
+    document.getElementById('journal-entry').value = '';
+    loadJournal();
+  });
 }
 
-// --- Export CSV ---
-exportBtn.addEventListener("click", () => {
-  let csv = "Date,Symbol,Direction,Entry,Exit,Qty,PnL,Reason\n";
-  trades.forEach(t => {
-    csv += `${t.date},${t.symbol},${t.direction},${t.entry},${t.exit},${t.qty},${t.pnl},${t.reason}\n`;
-  });
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "trading_journal.csv";
-  a.click();
-});
-
-// --- Import CSV ---
-importFile.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const rows = event.target.result.split("\n").slice(1);
-    rows.forEach(row => {
-      const [date, symbol, direction, entry, exit, qty, pnl, reason] = row.split(",");
-      if (date) trades.push({ date, symbol, direction, entry: +entry, exit: +exit, qty: +qty, pnl: +pnl, reason });
+// --------- Load Journal Entries ---------
+function loadJournal() {
+  const uid = localStorage.getItem('currentUID');
+  db.collection('journals').doc(uid).get().then(doc => {
+    const journalDiv = document.getElementById('entries');
+    journalDiv.innerHTML = '';
+    const entries = doc.data()?.entries || [];
+    entries.forEach((entry, i) => {
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.textContent = `${i+1}. ${entry}`;
+      journalDiv.appendChild(div);
     });
-    renderTrades();
-  };
-  reader.readAsText(file);
-});
-
-// --- Init ---
-renderTrades();
+  });
+}
