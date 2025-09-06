@@ -1,80 +1,129 @@
-import React, { useState } from "react";
-import { Chart } from "chart.js";
-import "tailwindcss/tailwind.css";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trading Journal Pro</title>
+  <meta name="description" content="A professional trading journal to track trades, PnL, and performance." />
 
-const stats = [
-  { label: "Total PnL", value: "₹120,540", color: "text-green-500" },
-  { label: "Win Rate", value: "65%", color: "text-[#bb86fc]" },
-  { label: "Total Trades", value: "110", color: "text-pink-400" },
-];
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-const achievements = [
-  { title: "10 Consecutive Wins", icon: "🏅" },
-  { title: "Disciplined Exit", icon: "✅" },
-  { title: "Risk Management Master", icon: "🛡️" },
-];
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-export default function TradingJournalPro() {
-  // Example states for trades and quiz/games
-  const [trades, setTrades] = useState([]);
-  const [showQuiz, setShowQuiz] = useState(false);
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  return (
-    <div className="bg-neutral-900 min-h-screen text-gray-200 font-inter p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-[#bb86fc] tracking-tight">Trading Journal Pro</h1>
-          <div className="flex gap-3">
-            <label className="btn-outline cursor-pointer">
-              Import CSV<input type="file" accept=".csv" className="hidden" />
-            </label>
-            <button className="btn-outline">Export CSV</button>
-          </div>
-        </header>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .card { @apply bg-gray-900 rounded-2xl shadow-xl p-6 border border-gray-800; }
+    .btn { @apply px-4 py-2 rounded-xl font-medium text-white bg-purple-600 hover:bg-purple-700 transition; }
+    .btn-outline { @apply px-4 py-2 rounded-xl font-medium border border-purple-500 text-purple-400 hover:bg-purple-600/10 transition; }
+    table { border-radius: 12px; overflow: hidden; }
+    thead { background: #1f1f1f; }
+    tbody tr:hover { background: #2a2a2a; }
+  </style>
+</head>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {stats.map(stat => (
-            <div key={stat.label} className="bg-gray-900 rounded-2xl shadow-lg p-5 border border-gray-800 text-center">
-              <p className="text-xs text-gray-400">{stat.label}</p>
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-            </div>
-          ))}
-        </div>
+<body class="bg-black text-gray-200 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
 
-        {/* Achievements */}
-        <div className="mb-8 bg-gray-800 rounded-2xl p-6 flex gap-6 justify-center">
-          {achievements.map(ach => (
-            <div key={ach.title} className="flex flex-col items-center">
-              <span className="text-3xl">{ach.icon}</span>
-              <p className="mt-2 text-sm text-gray-300">{ach.title}</p>
-            </div>
-          ))}
-        </div>
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-10">
+      <h1 class="text-3xl font-bold text-purple-400">Trading Journal Pro</h1>
+      <div class="flex gap-3">
+        <label class="btn-outline cursor-pointer">
+          Import CSV
+          <input id="importFile" type="file" accept=".csv" class="hidden" />
+        </label>
+        <button id="exportBtn" class="btn-outline">Export CSV</button>
+      </div>
+    </header>
 
-        {/* Add Trade */}
-        <div className="bg-gray-800 p-6 rounded-2xl mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-[#bb86fc]">Add Trade</h2>
-          {/* ...form fields (see your original) */}
-        </div>
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div class="card text-center">
+        <p class="text-sm text-gray-400">Total PnL</p>
+        <p id="totalPnL" class="text-3xl font-bold">₹0</p>
+      </div>
+      <div class="card text-center">
+        <p class="text-sm text-gray-400">Win Rate</p>
+        <p id="winRate" class="text-3xl font-bold text-purple-400">0%</p>
+      </div>
+      <div class="card text-center">
+        <p class="text-sm text-gray-400">Total Trades</p>
+        <p id="totalTrades" class="text-3xl font-bold text-pink-400">0</p>
+      </div>
+    </div>
 
-        {/* Trading Journal Table */}
-        <div className="bg-gray-900 rounded-2xl p-6 mb-8 overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-left text-gray-400">
-                <th>Date</th><th>Symbol</th><th>Direction</th><th>Entry</th><th>Exit</th>
-                <th>Qty</th><th>PnL</th><th>Tags</th><th>Reason</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Map through trades array */}
-            </tbody>
-          </table>
-        </div>
+    <!-- Add Trade Form -->
+    <div class="card mb-10">
+      <h2 class="text-xl font-semibold mb-4 text-purple-300">Add Trade</h2>
+      <form id="journalForm" class="grid md:grid-cols-7 gap-4">
+        <input id="date" type="date" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+        <input id="symbol" type="text" placeholder="Symbol" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+        <select id="direction" class="border rounded-lg p-2 bg-gray-800 text-gray-200">
+          <option>LONG</option>
+          <option>SHORT</option>
+        </select>
+        <input id="entry" type="number" step="0.01" placeholder="Entry" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+        <input id="exit" type="number" step="0.01" placeholder="Exit" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+        <input id="qty" type="number" placeholder="Qty" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+        <input id="reason" type="text" placeholder="Reason for Trade" required class="border rounded-lg p-2 bg-gray-800 text-gray-200 md:col-span-7" />
+        <button type="submit" class="btn md:col-span-7">Add Trade</button>
+      </form>
+    </div>
 
-        {/* Performance Chart */}
-        <div className="bg-gray-800 p-6 rounded-2xl mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-[#bb86fc]">Performance Chart</h2>
-          <canvas id="pnlChart" height
+    <!-- Table -->
+    <div class="card mb-10 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-400">
+            <th class="p-3">Date</th>
+            <th class="p-3">Symbol</th>
+            <th class="p-3">Direction</th>
+            <th class="p-3">Entry</th>
+            <th class="p-3">Exit</th>
+            <th class="p-3">Qty</th>
+            <th class="p-3">PnL</th>
+            <th class="p-3">Reason</th>
+            <th class="p-3">Action</th>
+          </tr>
+        </thead>
+        <tbody id="journalBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Chart -->
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-4 text-purple-300">Performance</h2>
+      <canvas id="pnlChart" height="100"></canvas>
+    </div>
+
+  </div>
+
+  <script>
+    function updateTotalPnL(value) {
+      const pnlEl = document.getElementById("totalPnL");
+      pnlEl.textContent = "₹" + value.toFixed(2);
+
+      if (value > 0) {
+        pnlEl.classList.remove("text-red-400");
+        pnlEl.classList.add("text-green-400");
+      } else if (value < 0) {
+        pnlEl.classList.remove("text-green-400");
+        pnlEl.classList.add("text-red-400");
+      } else {
+        pnlEl.classList.remove("text-green-400", "text-red-400");
+        pnlEl.classList.add("text-gray-300");
+      }
+    }
+
+    // Example usage:
+    // updateTotalPnL(-1200); // shows red
+    // updateTotalPnL(1500);  // shows green
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
