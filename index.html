@@ -1,108 +1,139 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trading Journal Pro</title>
-  <meta name="description" content="A professional trading journal to track trades, PnL, and performance." />
+<!-- Put this BEFORE the <script src="app.js"></script> line in index.html -->
+<script>
+/* === Password + Hardening script ===
+   - Compares SHA-256(password) with stored digest (split/joined to reduce visibility)
+   - Disables right-click and common DevTools keys
+   - Detects DevTools (heuristic) and shows blocking overlay
+   Note: This is client-side protection / deterrent, not full security.
+*/
 
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+// precomputed SHA-256 of "Crazytrader@1234" (hex)
+const storedHashParts = [
+  "fa556104", "2a14f0cf", "1d535087", "c78d97f5",
+  "6273b8c6", "9da9234b", "1984a099", "bedc1899"
+];
+const STORED_HASH_HEX = storedHashParts.join("");
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+// helpers
+async function sha256Hex(message) {
+  const enc = new TextEncoder();
+  const data = enc.encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+}
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+const lockScreen = document.getElementById("lockScreen");
+const mainContent = document.getElementById("mainContent");
+const unlockBtn = document.getElementById("unlockBtn");
+const passwordInput = document.getElementById("passwordInput");
+const errorMsg = document.getElementById("errorMsg");
 
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .card { @apply bg-gray-900 rounded-2xl shadow-xl p-6 border border-gray-800; }
-    .btn { @apply px-4 py-2 rounded-xl font-medium text-white bg-purple-600 hover:bg-purple-700 transition; }
-    .btn-outline { @apply px-4 py-2 rounded-xl font-medium border border-purple-500 text-purple-400 hover:bg-purple-600/10 transition; }
-    table { border-radius: 12px; overflow: hidden; }
-    thead { background: #1f1f1f; }
-    tbody tr:hover { background: #2a2a2a; }
-  </style>
-</head>
+// overlay shown when devtools suspected
+let devtoolsOverlay = null;
+function showDevtoolsOverlay() {
+  if (devtoolsOverlay) return;
+  devtoolsOverlay = document.createElement('div');
+  devtoolsOverlay.style.position = 'fixed';
+  devtoolsOverlay.style.inset = '0';
+  devtoolsOverlay.style.background = 'rgba(0,0,0,0.95)';
+  devtoolsOverlay.style.zIndex = '99999';
+  devtoolsOverlay.style.display = 'flex';
+  devtoolsOverlay.style.justifyContent = 'center';
+  devtoolsOverlay.style.alignItems = 'center';
+  devtoolsOverlay.style.color = '#ff6b6b';
+  devtoolsOverlay.style.fontSize = '20px';
+  devtoolsOverlay.style.fontFamily = 'Inter, sans-serif';
+  devtoolsOverlay.innerText = 'Security lock: page disabled while DevTools is open.';
+  document.body.appendChild(devtoolsOverlay);
+}
 
-<body class="bg-black text-gray-200 min-h-screen p-6">
-  <div class="max-w-7xl mx-auto">
+// remove overlay
+function removeDevtoolsOverlay() {
+  if (!devtoolsOverlay) return;
+  devtoolsOverlay.remove();
+  devtoolsOverlay = null;
+}
 
-    <!-- Header -->
-    <header class="flex items-center justify-between mb-10">
-      <h1 class="text-3xl font-bold text-purple-400">Trading Journal Pro 🚀</h1>
-      <div class="flex gap-3">
-        <label class="btn-outline cursor-pointer">
-          Import CSV
-          <input id="importFile" type="file" accept=".csv" class="hidden" />
-        </label>
-        <button id="exportBtn" class="btn-outline">Export CSV</button>
-      </div>
-    </header>
+// unlock logic
+unlockBtn.addEventListener("click", async () => {
+  const val = passwordInput.value || '';
+  // quick UI feedback
+  unlockBtn.disabled = true;
+  unlockBtn.textContent = "Checking...";
+  try {
+    const h = await sha256Hex(val);
+    if (h === STORED_HASH_HEX) {
+      // success
+      lockScreen.classList.add("hidden");
+      mainContent.classList.remove("hidden");
+      errorMsg.classList.add("hidden");
+      // remove any devtools overlay if present
+      removeDevtoolsOverlay();
+    } else {
+      errorMsg.classList.remove("hidden");
+    }
+  } catch (e) {
+    console.error("hash error", e);
+    errorMsg.classList.remove("hidden");
+  } finally {
+    unlockBtn.disabled = false;
+    unlockBtn.textContent = "Unlock";
+    passwordInput.value = "";
+  }
+});
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-      <div class="card text-center">
-        <p class="text-sm text-gray-400">Total PnL</p>
-        <p id="totalPnL" class="text-3xl font-bold text-green-400">₹0</p>
-      </div>
-      <div class="card text-center">
-        <p class="text-sm text-gray-400">Win Rate</p>
-        <p id="winRate" class="text-3xl font-bold text-purple-400">0%</p>
-      </div>
-      <div class="card text-center">
-        <p class="text-sm text-gray-400">Total Trades</p>
-        <p id="totalTrades" class="text-3xl font-bold text-pink-400">0</p>
-      </div>
-    </div>
+// disable right-click
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+}, false);
 
-    <!-- Add Trade Form -->
-    <div class="card mb-10">
-      <h2 class="text-xl font-semibold mb-4 text-purple-300">➕ Add Trade</h2>
-      <form id="journalForm" class="grid md:grid-cols-7 gap-4">
-        <input id="date" type="date" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="symbol" type="text" placeholder="Symbol" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <select id="direction" class="border rounded-lg p-2 bg-gray-800 text-gray-200">
-          <option>LONG</option>
-          <option>SHORT</option>
-        </select>
-        <input id="entry" type="number" step="0.01" placeholder="Entry" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="exit" type="number" step="0.01" placeholder="Exit" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="qty" type="number" placeholder="Qty" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="reason" type="text" placeholder="Reason for Trade" required class="border rounded-lg p-2 bg-gray-800 text-gray-200 md:col-span-7" />
-        <button type="submit" class="btn md:col-span-7">Add Trade</button>
-      </form>
-    </div>
+// block common devtools keyboard shortcuts
+document.addEventListener('keydown', function (e) {
+  // F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+Shift+C, Ctrl+Shift+J
+  if (e.key === 'F12') e.preventDefault();
+  if (e.ctrlKey && e.key.toLowerCase() === 'u') e.preventDefault();
+  if (e.ctrlKey && e.shiftKey && (e.key.toLowerCase() === 'i' || e.key.toLowerCase() === 'j' || e.key.toLowerCase() === 'c')) e.preventDefault();
+  if (e.ctrlKey && e.key.toLowerCase() === 's') { /* allow save? prevent if you want */ }
+}, false);
 
-    <!-- Table -->
-    <div class="card mb-10 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-gray-400">
-            <th class="p-3">Date</th>
-            <th class="p-3">Symbol</th>
-            <th class="p-3">Direction</th>
-            <th class="p-3">Entry</th>
-            <th class="p-3">Exit</th>
-            <th class="p-3">Qty</th>
-            <th class="p-3">PnL</th>
-            <th class="p-3">Reason</th>
-            <th class="p-3">Action</th>
-          </tr>
-        </thead>
-        <tbody id="journalBody"></tbody>
-      </table>
-    </div>
+// heuristic devtools detection
+let devtoolsOpen = false;
+function checkDevTools() {
+  // Heuristics: large difference between outer and inner dimensions (DevTools docked),
+  // or using the special console trick.
+  const threshold = 160; // px difference considered suspicious
+  const widthDiff = Math.abs(window.outerWidth - window.innerWidth);
+  const heightDiff = Math.abs(window.outerHeight - window.innerHeight);
+  const suspicious = widthDiff > threshold || heightDiff > threshold;
 
-    <!-- Chart -->
-    <div class="card">
-      <h2 class="text-xl font-semibold mb-4 text-purple-300">📈 Performance</h2>
-      <canvas id="pnlChart" height="100"></canvas>
-    </div>
+  // Another check: opening a debugger statement and measuring time (slow trick).
+  let start = performance.now();
+  debugger; // modern browsers may ignore it if DevTools closed
+  let elapsed = performance.now() - start;
 
-  </div>
+  const slow = elapsed > 100; // if debugger paused/stepped, elapsed will be high
 
-  <script src="app.js"></script>
-</body>
-</html>
+  if (suspicious || slow) {
+    if (!devtoolsOpen) {
+      devtoolsOpen = true;
+      showDevtoolsOverlay();
+    }
+  } else {
+    if (devtoolsOpen) {
+      devtoolsOpen = false;
+      removeDevtoolsOverlay();
+    }
+  }
+}
+
+// run check periodically
+setInterval(checkDevTools, 1000);
+
+// extra: try to detect open via DevTools-dedicated API (nonstandard)
+if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || /Chrome/.test(navigator.userAgent) && window.devtools) {
+  showDevtoolsOverlay();
+}
+
+// Final note: this is a deterrent for casual users, not absolute security.
+</script>
