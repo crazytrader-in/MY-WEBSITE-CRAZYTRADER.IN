@@ -1,2 +1,1 @@
-launching soon
-CRAZY   TRADER 
+COMING SOON
