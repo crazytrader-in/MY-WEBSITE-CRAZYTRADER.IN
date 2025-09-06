@@ -1,2 +1,2 @@
-# CRAZY-TRADER
-CRAZY 
+launching soon
+CRAZY   TRADER 
