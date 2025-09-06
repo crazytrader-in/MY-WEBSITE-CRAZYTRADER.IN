@@ -31,7 +31,7 @@
 
     <!-- Header -->
     <header class="flex items-center justify-between mb-10">
-      <h1 class="text-3xl font-bold text-purple-400">Trading Journal Pro 🚀</h1>
+      <h1 class="text-3xl font-bold text-purple-400">Trading Journal Pro</h1>
       <div class="flex gap-3">
         <label class="btn-outline cursor-pointer">
           Import CSV
@@ -45,7 +45,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
       <div class="card text-center">
         <p class="text-sm text-gray-400">Total PnL</p>
-        <p id="totalPnL" class="text-3xl font-bold text-green-400">₹0</p>
+        <p id="totalPnL" class="text-3xl font-bold">₹0</p>
       </div>
       <div class="card text-center">
         <p class="text-sm text-gray-400">Win Rate</p>
@@ -59,7 +59,7 @@
 
     <!-- Add Trade Form -->
     <div class="card mb-10">
-      <h2 class="text-xl font-semibold mb-4 text-purple-300">➕ Add Trade</h2>
+      <h2 class="text-xl font-semibold mb-4 text-purple-300">Add Trade</h2>
       <form id="journalForm" class="grid md:grid-cols-7 gap-4">
         <input id="date" type="date" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
         <input id="symbol" type="text" placeholder="Symbol" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
@@ -97,12 +97,33 @@
 
     <!-- Chart -->
     <div class="card">
-      <h2 class="text-xl font-semibold mb-4 text-purple-300">📈 Performance</h2>
+      <h2 class="text-xl font-semibold mb-4 text-purple-300">Performance</h2>
       <canvas id="pnlChart" height="100"></canvas>
     </div>
 
   </div>
 
+  <script>
+    function updateTotalPnL(value) {
+      const pnlEl = document.getElementById("totalPnL");
+      pnlEl.textContent = "₹" + value.toFixed(2);
+
+      if (value > 0) {
+        pnlEl.classList.remove("text-red-400");
+        pnlEl.classList.add("text-green-400");
+      } else if (value < 0) {
+        pnlEl.classList.remove("text-green-400");
+        pnlEl.classList.add("text-red-400");
+      } else {
+        pnlEl.classList.remove("text-green-400", "text-red-400");
+        pnlEl.classList.add("text-gray-300");
+      }
+    }
+
+    // Example usage:
+    // updateTotalPnL(-1200); // shows red
+    // updateTotalPnL(1500);  // shows green
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
