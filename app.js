@@ -1,171 +1,132 @@
-// Trading Journal - app.js
-// Stores data in localStorage so it works fully offline in the browser
+let trades = JSON.parse(localStorage.getItem("trades")) || [];
+const form = document.getElementById("journalForm");
+const journalBody = document.getElementById("journalBody");
+const totalPnL = document.getElementById("totalPnL");
+const winRate = document.getElementById("winRate");
+const totalTrades = document.getElementById("totalTrades");
+const importFile = document.getElementById("importFile");
+const exportBtn = document.getElementById("exportBtn");
 
-const STORAGE_KEY = "tradingJournalEntries";
+let pnlChart;
 
-// Load existing entries from localStorage
-function loadEntries() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-// Save entries back to localStorage
-function saveEntries(entries) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
-
-// Render table rows
-function renderTable() {
-  const tbody = document.getElementById("journalBody");
-  tbody.innerHTML = "";
-  const entries = loadEntries();
-
-  entries.forEach((entry, index) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${entry.date}</td>
-      <td>${entry.symbol}</td>
-      <td>${entry.direction}</td>
-      <td>${entry.entry}</td>
-      <td>${entry.exit}</td>
-      <td>${entry.qty}</td>
-      <td>${entry.pnl}</td>
-      <td>
-        <button class="btn btn-ghost text-red-600" onclick="deleteEntry(${index})">Delete</button>
-      </td>
+// --- Render Table ---
+function renderTrades() {
+  journalBody.innerHTML = "";
+  trades.forEach((trade, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="p-3">${trade.date}</td>
+      <td class="p-3">${trade.symbol}</td>
+      <td class="p-3">${trade.direction}</td>
+      <td class="p-3">${trade.entry}</td>
+      <td class="p-3">${trade.exit}</td>
+      <td class="p-3">${trade.qty}</td>
+      <td class="p-3 font-bold ${trade.pnl >= 0 ? "text-green-400" : "text-red-400"}">${trade.pnl}</td>
+      <td class="p-3">${trade.reason}</td>
+      <td class="p-3"><button onclick="deleteTrade(${index})" class="text-red-400 hover:underline">Delete</button></td>
     `;
-    tbody.appendChild(tr);
+    journalBody.appendChild(row);
   });
-
-  updateStats(entries);
-  updateChart(entries);
+  updateStats();
+  updateChart();
+  localStorage.setItem("trades", JSON.stringify(trades));
 }
 
-// Add a new entry
-function addEntry(e) {
-  e.preventDefault();
+// --- Update Stats ---
+function updateStats() {
+  let total = trades.reduce((acc, t) => acc + t.pnl, 0);
+  totalPnL.textContent = `₹${total.toFixed(2)}`;
+  totalTrades.textContent = trades.length;
 
-  const date = document.getElementById("date").value;
-  const symbol = document.getElementById("symbol").value;
-  const direction = document.getElementById("direction").value;
-  const entry = parseFloat(document.getElementById("entry").value);
-  const exit = parseFloat(document.getElementById("exit").value);
-  const qty = parseInt(document.getElementById("qty").value);
-
-  const pnl =
-    direction === "LONG"
-      ? ((exit - entry) * qty).toFixed(2)
-      : ((entry - exit) * qty).toFixed(2);
-
-  const newEntry = { date, symbol, direction, entry, exit, qty, pnl };
-
-  const entries = loadEntries();
-  entries.push(newEntry);
-  saveEntries(entries);
-  renderTable();
-
-  document.getElementById("journalForm").reset();
+  let wins = trades.filter(t => t.pnl > 0).length;
+  winRate.textContent = trades.length ? `${((wins / trades.length) * 100).toFixed(1)}%` : "0%";
 }
 
-// Delete an entry
-function deleteEntry(index) {
-  const entries = loadEntries();
-  entries.splice(index, 1);
-  saveEntries(entries);
-  renderTable();
-}
+// --- Chart ---
+function updateChart() {
+  let labels = trades.map(t => t.date);
+  let pnlData = trades.map(t => t.pnl);
 
-// Update stats (win rate, total PnL, etc.)
-function updateStats(entries) {
-  const totalPnL = entries.reduce((sum, e) => sum + parseFloat(e.pnl), 0);
-  const wins = entries.filter((e) => parseFloat(e.pnl) > 0).length;
-  const winRate = entries.length ? ((wins / entries.length) * 100).toFixed(1) : 0;
+  if (pnlChart) pnlChart.destroy();
 
-  document.getElementById("totalPnL").innerText = totalPnL.toFixed(2);
-  document.getElementById("winRate").innerText = winRate + "%";
-  document.getElementById("totalTrades").innerText = entries.length;
-}
-
-// Update chart.js performance graph
-function updateChart(entries) {
   const ctx = document.getElementById("pnlChart").getContext("2d");
-  const pnlProgress = entries.reduce((acc, e, i) => {
-    const prev = i > 0 ? acc[i - 1] : 0;
-    acc.push(prev + parseFloat(e.pnl));
-    return acc;
-  }, []);
-
-  if (window.pnlChart) window.pnlChart.destroy();
-
-  window.pnlChart = new Chart(ctx, {
+  pnlChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: entries.map((e) => e.date),
-      datasets: [
-        {
-          label: "Cumulative PnL",
-          data: pnlProgress,
-          borderColor: "#4f46e5",
-          backgroundColor: "rgba(79,70,229,0.1)",
-          fill: true,
-        },
-      ],
+      labels,
+      datasets: [{
+        label: "PnL",
+        data: pnlData,
+        borderColor: "#a855f7",
+        backgroundColor: "rgba(168,85,247,0.2)",
+        fill: true,
+        tension: 0.4,
+      }]
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: { display: true },
-      },
-    },
+      plugins: { legend: { labels: { color: "#ccc" } } },
+      scales: {
+        x: { ticks: { color: "#aaa" }, grid: { color: "#333" } },
+        y: { ticks: { color: "#aaa" }, grid: { color: "#333" } }
+      }
+    }
   });
 }
 
-// Export CSV
-function exportCSV() {
-  const entries = loadEntries();
-  if (!entries.length) return alert("No data to export!");
+// --- Add Trade ---
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const trade = {
+    date: form.date.value,
+    symbol: form.symbol.value,
+    direction: form.direction.value,
+    entry: parseFloat(form.entry.value),
+    exit: parseFloat(form.exit.value),
+    qty: parseInt(form.qty.value),
+    reason: form.reason.value,
+  };
+  trade.pnl = (trade.exit - trade.entry) * trade.qty * (trade.direction === "LONG" ? 1 : -1);
 
-  const header = Object.keys(entries[0]).join(",");
-  const rows = entries.map((e) => Object.values(e).join(","));
-  const csv = [header, ...rows].join("\n");
+  trades.push(trade);
+  renderTrades();
+  form.reset();
+});
 
+// --- Delete Trade ---
+function deleteTrade(index) {
+  trades.splice(index, 1);
+  renderTrades();
+}
+
+// --- Export CSV ---
+exportBtn.addEventListener("click", () => {
+  let csv = "Date,Symbol,Direction,Entry,Exit,Qty,PnL,Reason\n";
+  trades.forEach(t => {
+    csv += `${t.date},${t.symbol},${t.direction},${t.entry},${t.exit},${t.qty},${t.pnl},${t.reason}\n`;
+  });
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = "trading_journal.csv";
   a.click();
-  URL.revokeObjectURL(url);
-}
+});
 
-// Import CSV
-function importCSV(file) {
+// --- Import CSV ---
+importFile.addEventListener("change", (e) => {
+  const file = e.target.files[0];
   const reader = new FileReader();
-  reader.onload = function (e) {
-    const text = e.target.result;
-    const lines = text.split("\n").map((line) => line.split(","));
-    const [header, ...rows] = lines;
-
-    const entries = rows
-      .filter((r) => r.length === header.length)
-      .map((r) => {
-        const obj = {};
-        header.forEach((h, i) => (obj[h] = r[i]));
-        return obj;
-      });
-
-    saveEntries(entries);
-    renderTable();
+  reader.onload = (event) => {
+    const rows = event.target.result.split("\n").slice(1);
+    rows.forEach(row => {
+      const [date, symbol, direction, entry, exit, qty, pnl, reason] = row.split(",");
+      if (date) trades.push({ date, symbol, direction, entry: +entry, exit: +exit, qty: +qty, pnl: +pnl, reason });
+    });
+    renderTrades();
   };
   reader.readAsText(file);
-}
+});
 
-// Attach event listeners
-document.getElementById("journalForm").addEventListener("submit", addEntry);
-document.getElementById("exportBtn").addEventListener("click", exportCSV);
-document
-  .getElementById("importFile")
-  .addEventListener("change", (e) => importCSV(e.target.files[0]));
-
-// Initial render
-renderTable();
+// --- Init ---
+renderTrades();
