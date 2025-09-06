@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Trading Journal Pro</title>
-  <meta name="description" content="A professional trading journal to track trades, PnL, and performance." />
+  <meta name="description" content="Professional trading journal and analytics dashboard." />
 
   <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -17,113 +17,177 @@
 
   <style>
     body { font-family: 'Inter', sans-serif; }
-    .card { @apply bg-gray-900 rounded-2xl shadow-xl p-6 border border-gray-800; }
-    .btn { @apply px-4 py-2 rounded-xl font-medium text-white bg-purple-600 hover:bg-purple-700 transition; }
-    .btn-outline { @apply px-4 py-2 rounded-xl font-medium border border-purple-500 text-purple-400 hover:bg-purple-600/10 transition; }
-    table { border-radius: 12px; overflow: hidden; }
-    thead { background: #1f1f1f; }
-    tbody tr:hover { background: #2a2a2a; }
+    .card { @apply bg-gray-900 rounded-2xl shadow-lg p-6 border border-gray-800; }
+    .btn { @apply px-4 py-2 rounded-lg font-medium text-white bg-purple-600 hover:bg-purple-700 transition; }
+    .btn-outline { @apply px-4 py-2 rounded-lg font-medium border border-purple-500 text-purple-400 hover:bg-purple-600/10 transition; }
+    .sidebar { @apply bg-gray-950 text-gray-300 w-64 min-h-screen p-6 border-r border-gray-800; }
+    .sidebar a { @apply block py-2 px-3 rounded-lg hover:bg-gray-800 transition font-medium; }
+    .active { @apply bg-purple-600 text-white; }
   </style>
 </head>
 
-<body class="bg-black text-gray-200 min-h-screen p-6">
-  <div class="max-w-7xl mx-auto">
+<body class="bg-black text-gray-200 flex">
 
-    <!-- Header -->
-    <header class="flex items-center justify-between mb-10">
-      <h1 class="text-3xl font-bold text-purple-400">Trading Journal Pro</h1>
-      <div class="flex gap-3">
-        <label class="btn-outline cursor-pointer">
-          Import CSV
-          <input id="importFile" type="file" accept=".csv" class="hidden" />
-        </label>
-        <button id="exportBtn" class="btn-outline">Export CSV</button>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <h1 class="text-2xl font-bold text-purple-400 mb-6">Trading Journal Pro</h1>
+    <nav>
+      <a href="#dashboard" class="active">Dashboard</a>
+      <a href="#journal">Journal</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#games">Games</a>
+      <a href="#settings">Settings</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-8 overflow-y-auto">
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="space-y-8">
+      <h2 class="text-xl font-semibold text-purple-300">Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card text-center">
+          <p class="text-sm text-gray-400">Total PnL</p>
+          <p id="totalPnL" class="text-3xl font-bold">₹0</p>
+        </div>
+        <div class="card text-center">
+          <p class="text-sm text-gray-400">Win Rate</p>
+          <p id="winRate" class="text-3xl font-bold text-purple-400">0%</p>
+        </div>
+        <div class="card text-center">
+          <p class="text-sm text-gray-400">Total Trades</p>
+          <p id="totalTrades" class="text-3xl font-bold text-pink-400">0</p>
+        </div>
       </div>
-    </header>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div class="card">
+        <h3 class="text-lg font-semibold mb-4 text-purple-300">Equity Curve</h3>
+        <canvas id="equityChart" height="100"></canvas>
+      </div>
+    </section>
+
+    <!-- Journal -->
+    <section id="journal" class="space-y-8 hidden">
+      <h2 class="text-xl font-semibold text-purple-300">Trading Journal</h2>
+
+      <!-- Add Trade Form -->
+      <div class="card">
+        <form id="journalForm" class="grid md:grid-cols-7 gap-4">
+          <input id="date" type="date" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+          <input id="symbol" type="text" placeholder="Symbol" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+          <select id="direction" class="border rounded-lg p-2 bg-gray-800 text-gray-200">
+            <option>LONG</option>
+            <option>SHORT</option>
+          </select>
+          <input id="entry" type="number" step="0.01" placeholder="Entry" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+          <input id="exit" type="number" step="0.01" placeholder="Exit" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+          <input id="qty" type="number" placeholder="Qty" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
+          <input id="reason" type="text" placeholder="Reason for Trade" required class="border rounded-lg p-2 bg-gray-800 text-gray-200 md:col-span-7" />
+          <button type="submit" class="btn md:col-span-7">Add Trade</button>
+        </form>
+      </div>
+
+      <!-- Journal Table -->
+      <div class="card overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400">
+              <th class="p-3">Date</th>
+              <th class="p-3">Symbol</th>
+              <th class="p-3">Direction</th>
+              <th class="p-3">Entry</th>
+              <th class="p-3">Exit</th>
+              <th class="p-3">Qty</th>
+              <th class="p-3">PnL</th>
+              <th class="p-3">Reason</th>
+              <th class="p-3">Action</th>
+            </tr>
+          </thead>
+          <tbody id="journalBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Analytics -->
+    <section id="analytics" class="space-y-8 hidden">
+      <h2 class="text-xl font-semibold text-purple-300">Analytics</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card">
+          <h3 class="text-lg mb-2 font-semibold">PnL Distribution</h3>
+          <canvas id="pnlDistChart" height="100"></canvas>
+        </div>
+        <div class="card">
+          <h3 class="text-lg mb-2 font-semibold">Win/Loss by Symbol</h3>
+          <canvas id="symbolChart" height="100"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Games -->
+    <section id="games" class="space-y-8 hidden">
+      <h2 class="text-xl font-semibold text-purple-300">Games & Training</h2>
       <div class="card text-center">
-        <p class="text-sm text-gray-400">Total PnL</p>
-        <p id="totalPnL" class="text-3xl font-bold">₹0</p>
+        <p class="text-gray-400 mb-4">Sharpen your mind with quick reflex & candlestick games.</p>
+        <button class="btn">Start Reflex Game</button>
       </div>
-      <div class="card text-center">
-        <p class="text-sm text-gray-400">Win Rate</p>
-        <p id="winRate" class="text-3xl font-bold text-purple-400">0%</p>
+    </section>
+
+    <!-- Settings -->
+    <section id="settings" class="space-y-8 hidden">
+      <h2 class="text-xl font-semibold text-purple-300">Settings</h2>
+      <div class="card">
+        <p class="text-gray-400">Coming soon: Cloud sync, Google login, customization.</p>
       </div>
-      <div class="card text-center">
-        <p class="text-sm text-gray-400">Total Trades</p>
-        <p id="totalTrades" class="text-3xl font-bold text-pink-400">0</p>
-      </div>
-    </div>
+    </section>
 
-    <!-- Add Trade Form -->
-    <div class="card mb-10">
-      <h2 class="text-xl font-semibold mb-4 text-purple-300">Add Trade</h2>
-      <form id="journalForm" class="grid md:grid-cols-7 gap-4">
-        <input id="date" type="date" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="symbol" type="text" placeholder="Symbol" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <select id="direction" class="border rounded-lg p-2 bg-gray-800 text-gray-200">
-          <option>LONG</option>
-          <option>SHORT</option>
-        </select>
-        <input id="entry" type="number" step="0.01" placeholder="Entry" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="exit" type="number" step="0.01" placeholder="Exit" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="qty" type="number" placeholder="Qty" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-        <input id="reason" type="text" placeholder="Reason for Trade" required class="border rounded-lg p-2 bg-gray-800 text-gray-200 md:col-span-7" />
-        <button type="submit" class="btn md:col-span-7">Add Trade</button>
-      </form>
-    </div>
-
-    <!-- Table -->
-    <div class="card mb-10 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-gray-400">
-            <th class="p-3">Date</th>
-            <th class="p-3">Symbol</th>
-            <th class="p-3">Direction</th>
-            <th class="p-3">Entry</th>
-            <th class="p-3">Exit</th>
-            <th class="p-3">Qty</th>
-            <th class="p-3">PnL</th>
-            <th class="p-3">Reason</th>
-            <th class="p-3">Action</th>
-          </tr>
-        </thead>
-        <tbody id="journalBody"></tbody>
-      </table>
-    </div>
-
-    <!-- Chart -->
-    <div class="card">
-      <h2 class="text-xl font-semibold mb-4 text-purple-300">Performance</h2>
-      <canvas id="pnlChart" height="100"></canvas>
-    </div>
-
-  </div>
+  </main>
 
   <script>
+    // Sidebar navigation
+    const links = document.querySelectorAll(".sidebar a");
+    const sections = document.querySelectorAll("main section");
+
+    links.forEach(link => {
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        links.forEach(l => l.classList.remove("active"));
+        link.classList.add("active");
+
+        sections.forEach(sec => sec.classList.add("hidden"));
+        document.querySelector(link.getAttribute("href")).classList.remove("hidden");
+      });
+    });
+
+    // Dynamic PnL color
     function updateTotalPnL(value) {
       const pnlEl = document.getElementById("totalPnL");
       pnlEl.textContent = "₹" + value.toFixed(2);
+      pnlEl.classList.remove("text-green-400", "text-red-400", "text-gray-300");
 
-      if (value > 0) {
-        pnlEl.classList.remove("text-red-400");
-        pnlEl.classList.add("text-green-400");
-      } else if (value < 0) {
-        pnlEl.classList.remove("text-green-400");
-        pnlEl.classList.add("text-red-400");
-      } else {
-        pnlEl.classList.remove("text-green-400", "text-red-400");
-        pnlEl.classList.add("text-gray-300");
-      }
+      if (value > 0) pnlEl.classList.add("text-green-400");
+      else if (value < 0) pnlEl.classList.add("text-red-400");
+      else pnlEl.classList.add("text-gray-300");
     }
 
-    // Example usage:
-    // updateTotalPnL(-1200); // shows red
-    // updateTotalPnL(1500);  // shows green
+    // Example: Demo equity chart
+    const ctx = document.getElementById("equityChart");
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: ["Mon","Tue","Wed","Thu","Fri"],
+        datasets: [{
+          label: "Equity",
+          data: [100000, 102500, 101200, 104000, 103500],
+          borderColor: "rgb(168, 85, 247)",
+          tension: 0.3
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false }},
+        scales: { x: { grid: { display: false }}, y: { grid: { color: "#222" }} }
+      }
+    });
   </script>
-  <script src="app.js"></script>
 </body>
 </html>
