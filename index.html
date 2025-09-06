@@ -1,137 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trading Journal Pro</title>
-
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .card { @apply bg-gray-900 rounded-2xl shadow-xl p-6 border border-gray-800; }
-    .btn { @apply px-4 py-2 rounded-xl font-medium text-white bg-purple-600 hover:bg-purple-700 transition; }
-    .btn-outline { @apply px-4 py-2 rounded-xl font-medium border border-purple-500 text-purple-400 hover:bg-purple-600/10 transition; }
-    table { border-radius: 12px; overflow: hidden; }
-    thead { background: #1f1f1f; }
-    tbody tr:hover { background: #2a2a2a; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Trading Journal</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+  h1, h2 { margin-top: 20px; }
+  input { padding: 5px; margin: 5px 0; width: 200px; }
+  button { padding: 5px 10px; margin: 5px 0; }
+  .journal { margin-top: 20px; }
+  .entry { background: #fff; padding: 10px; margin: 5px 0; border-radius: 5px; }
+  #logout { margin-top: 20px; }
+  p.warning { color: red; }
+  footer { margin-top: 30px; font-style: italic; color: #555; }
+</style>
 </head>
+<body>
 
-<body class="bg-black text-gray-200 min-h-screen p-6 flex flex-col">
+<h1>Online Trading Journal</h1>
 
-  <!-- 🌐 Main Website Content -->
-  <div id="mainContent" class="flex-grow">
-    <div class="max-w-7xl mx-auto">
+<div id="signup-login">
+  <h2>Sign Up</h2>
+  <input type="text" id="signup-username" placeholder="Username"><br>
+  <input type="password" id="signup-password" placeholder="Password"><br>
+  <button onclick="signup()">Sign Up</button>
 
-      <!-- Header -->
-      <header class="flex items-center justify-between mb-10">
-        <h1 class="text-3xl font-bold text-purple-400">Trading Journal Pro 🚀</h1>
-        <div class="flex gap-3">
-          <label class="btn-outline cursor-pointer">
-            Import CSV
-            <input id="importFile" type="file" accept=".csv" class="hidden" />
-          </label>
-          <button id="exportBtn" class="btn-outline">Export CSV</button>
-          <!-- Google Login (UI only for now) -->
-          <button id="googleLogin" class="btn">Login with Google</button>
-        </div>
-      </header>
+  <h2>Login</h2>
+  <input type="text" id="login-username" placeholder="Username"><br>
+  <input type="password" id="login-password" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
 
-      <!-- Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div class="card text-center">
-          <p class="text-sm text-gray-400">Total PnL</p>
-          <p id="totalPnL" class="text-3xl font-bold">₹0</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-sm text-gray-400">Win Rate</p>
-          <p id="winRate" class="text-3xl font-bold text-purple-400">0%</p>
-        </div>
-        <div class="card text-center">
-          <p class="text-sm text-gray-400">Total Trades</p>
-          <p id="totalTrades" class="text-3xl font-bold text-pink-400">0</p>
-        </div>
-      </div>
+  <p class="warning">Forgot user ID or password? Your account is lost forever.</p>
+</div>
 
-      <!-- Add Trade Form -->
-      <div class="card mb-10">
-        <h2 class="text-xl font-semibold mb-4 text-purple-300">➕ Add Trade</h2>
-        <form id="journalForm" class="grid md:grid-cols-7 gap-4">
-          <input id="date" type="date" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-          <input id="symbol" type="text" placeholder="Symbol" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-          <select id="direction" class="border rounded-lg p-2 bg-gray-800 text-gray-200">
-            <option>LONG</option>
-            <option>SHORT</option>
-          </select>
-          <input id="entry" type="number" step="0.01" placeholder="Entry" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-          <input id="exit" type="number" step="0.01" placeholder="Exit" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-          <input id="qty" type="number" placeholder="Qty" required class="border rounded-lg p-2 bg-gray-800 text-gray-200" />
-          <input id="reason" type="text" placeholder="Reason for Trade" required class="border rounded-lg p-2 bg-gray-800 text-gray-200 md:col-span-7" />
-          <button type="submit" class="btn md:col-span-7">Add Trade</button>
-        </form>
-      </div>
+<div id="journal-app" style="display:none;">
+  <h2>Your Journal</h2>
+  <input type="text" id="journal-entry" placeholder="Write your trade here">
+  <button onclick="addEntry()">Add Entry</button>
+  <div class="journal" id="entries"></div>
+  <button id="logout" onclick="logout()">Logout</button>
+</div>
 
-      <!-- Table -->
-      <div class="card mb-10 overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-gray-400">
-              <th class="p-3">Date</th>
-              <th class="p-3">Symbol</th>
-              <th class="p-3">Direction</th>
-              <th class="p-3">Entry</th>
-              <th class="p-3">Exit</th>
-              <th class="p-3">Qty</th>
-              <th class="p-3">PnL</th>
-              <th class="p-3">Reason</th>
-              <th class="p-3">Action</th>
-            </tr>
-          </thead>
-          <tbody id="journalBody"></tbody>
-        </table>
-      </div>
+<footer>Algo trading software coming soon...</footer>
 
-      <!-- Chart -->
-      <div class="card">
-        <h2 class="text-xl font-semibold mb-4 text-purple-300">📈 Performance</h2>
-        <canvas id="pnlChart" height="100"></canvas>
-      </div>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
 
-    </div>
-  </div>
+<!-- App JS -->
+<script src="app.js"></script>
 
-  <!-- Footer -->
-  <footer class="text-center text-gray-500 py-4 border-t border-gray-800">
-    Algo trading software coming soon 🚀
-  </footer>
-
-  <!-- JS -->
-  <script src="app.js"></script>
-
-  <script>
-    // Update total PnL color dynamically
-    function updateTotalPnL(value) {
-      const pnlEl = document.getElementById("totalPnL");
-      pnlEl.textContent = `₹${value}`;
-      if (value >= 0) {
-        pnlEl.classList.remove("text-red-400");
-        pnlEl.classList.add("text-green-400");
-      } else {
-        pnlEl.classList.remove("text-green-400");
-        pnlEl.classList.add("text-red-400");
-      }
-    }
-
-    // Example hook (your app.js will call this)
-    updateTotalPnL(0);
-  </script>
 </body>
 </html>
