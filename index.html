@@ -25,21 +25,10 @@
   </style>
 </head>
 
-<body class="bg-black text-gray-200 min-h-screen p-6">
-
-  <!-- 🔒 Password Screen -->
-  <div id="lockScreen" class="fixed inset-0 bg-black flex items-center justify-center z-50">
-    <div class="card w-full max-w-md text-center">
-      <h2 class="text-2xl font-bold text-purple-400 mb-6">🔒 Enter Password</h2>
-      <input id="passwordInput" type="password" placeholder="Enter password"
-             class="w-full mb-4 p-3 rounded-lg bg-gray-800 text-gray-200 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-      <button id="unlockBtn" class="btn w-full">Unlock</button>
-      <p id="errorMsg" class="text-red-400 mt-3 hidden">❌ Wrong password</p>
-    </div>
-  </div>
+<body class="bg-black text-gray-200 min-h-screen p-6 flex flex-col">
 
   <!-- 🌐 Main Website Content -->
-  <div id="mainContent" class="hidden">
+  <div id="mainContent" class="flex-grow">
     <div class="max-w-7xl mx-auto">
 
       <!-- Header -->
@@ -51,6 +40,8 @@
             <input id="importFile" type="file" accept=".csv" class="hidden" />
           </label>
           <button id="exportBtn" class="btn-outline">Export CSV</button>
+          <!-- Google Login (UI only for now) -->
+          <button id="googleLogin" class="btn">Login with Google</button>
         </div>
       </header>
 
@@ -58,7 +49,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div class="card text-center">
           <p class="text-sm text-gray-400">Total PnL</p>
-          <p id="totalPnL" class="text-3xl font-bold text-green-400">₹0</p>
+          <p id="totalPnL" class="text-3xl font-bold">₹0</p>
         </div>
         <div class="card text-center">
           <p class="text-sm text-gray-400">Win Rate</p>
@@ -117,49 +108,30 @@
     </div>
   </div>
 
-  <!-- 🔑 Lock Script -->
-  <script>
-  // === Password Lock with SHA-256 ===
-  const storedHash = "fa5561042a14f0cf1d535087c78d97f56273b8c69da9234b1984a099bedc1899";
+  <!-- Footer -->
+  <footer class="text-center text-gray-500 py-4 border-t border-gray-800">
+    Algo trading software coming soon 🚀
+  </footer>
 
-  async function sha256Hex(message) {
-    const enc = new TextEncoder();
-    const data = enc.encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-
-  const lockScreen = document.getElementById("lockScreen");
-  const mainContent = document.getElementById("mainContent");
-  const unlockBtn = document.getElementById("unlockBtn");
-  const passwordInput = document.getElementById("passwordInput");
-  const errorMsg = document.getElementById("errorMsg");
-
-  unlockBtn.addEventListener("click", async () => {
-    const entered = passwordInput.value || "";
-    const hash = await sha256Hex(entered);
-    if (hash === storedHash) {
-      lockScreen.classList.add("hidden");
-      mainContent.classList.remove("hidden");
-      errorMsg.classList.add("hidden");
-    } else {
-      errorMsg.classList.remove("hidden");
-      passwordInput.value = "";
-    }
-  });
-
-  // === Disable right-click ===
-  document.addEventListener("contextmenu", e => e.preventDefault());
-
-  // === Block common DevTools shortcuts ===
-  document.addEventListener("keydown", e => {
-    if (e.key === "F12") e.preventDefault();
-    if (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) e.preventDefault();
-    if (e.ctrlKey && e.key.toUpperCase() === "U") e.preventDefault();
-  });
-  </script>
-
+  <!-- JS -->
   <script src="app.js"></script>
+
+  <script>
+    // Update total PnL color dynamically
+    function updateTotalPnL(value) {
+      const pnlEl = document.getElementById("totalPnL");
+      pnlEl.textContent = `₹${value}`;
+      if (value >= 0) {
+        pnlEl.classList.remove("text-red-400");
+        pnlEl.classList.add("text-green-400");
+      } else {
+        pnlEl.classList.remove("text-green-400");
+        pnlEl.classList.add("text-red-400");
+      }
+    }
+
+    // Example hook (your app.js will call this)
+    updateTotalPnL(0);
+  </script>
 </body>
 </html>
